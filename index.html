@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MPC Race Studio — interactive tentacle MPC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\\\(',right:'\\\\)',display:false}]})"></script>
+</head>
+<body>
+  <div class="aurora"></div>
+  <header class="topbar">
+    <a class="brand" href="#">
+      <span class="brand-mark">M</span>
+      <span><strong>MPC Race Studio</strong><small>interactive tentacle MPC</small></span>
+    </a>
+    <nav>
+      <a href="#visualiser">Visualiser</a>
+      <a href="#maths">The maths</a>
+      <a href="#about">About</a>
+      <a class="ghost" href="https://github.com/altcar/mpc-race-studio" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">REAL FSUK GEOMETRY · LIVE COST FUNCTION</p>
+        <h1>See the MPC<br><span>think.</span></h1>
+        <p class="lede">A sampling MPC fires a fan of steering arcs, scores every arc with the same cost
+          function the car uses, and commits to the cheapest one. Move the weights and watch the
+          choice change in real time.</p>
+      </div>
+      <div class="hero-stats">
+        <div><span id="stat-tents">15</span><small>tentacles</small></div>
+        <div><span id="stat-speed">6.0</span><small>m/s</small></div>
+        <div><span id="stat-horizon">1.6</span><small>s horizon</small></div>
+      </div>
+    </section>
+
+    <section id="visualiser" class="studio">
+      <div class="scene-panel">
+        <div id="three"></div>
+        <div class="scene-hud">
+          <div class="pill"><i class="dot cyan"></i> race line</div>
+          <div class="pill"><i class="dot magenta"></i> selected arc</div>
+          <div class="pill"><i class="dot grey"></i> alternatives</div>
+        </div>
+        <div class="scene-actions">
+          <button id="play" class="primary">Pause</button>
+          <button id="reset">Recentre</button>
+          <label class="toggle"><input id="show-all" type="checkbox" checked> show all tentacles</label>
+        </div>
+      </div>
+
+      <aside class="controls">
+        <div class="card">
+          <div class="card-head"><h2>MPC weights</h2><span class="live">live</span></div>
+          <div class="range"><label>tracking <b id="v-track">6.0</b></label>
+            <input id="w-track" type="range" min="0" max="20" step="0.1" value="6">
+            <p>Penalises cross-track error². High values hug the line.</p></div>
+          <div class="range"><label>heading <b id="v-head">2.5</b></label>
+            <input id="w-head" type="range" min="0" max="10" step="0.1" value="2.5">
+            <p>Penalises heading error². High values point early into corners.</p></div>
+          <div class="range"><label>comfort <b id="v-comfort">0.35</b></label>
+            <input id="w-comfort" type="range" min="0" max="3" step="0.01" value="0.35">
+            <p>Penalises steering magnitude. High values smooth the wheel.</p></div>
+          <div class="range"><label>soft constraint <b id="v-soft">4.0</b></label>
+            <input id="w-soft" type="range" min="0" max="30" step="0.2" value="4">
+            <p>Quadratic penalty once the predicted car leaves 72 % of the corridor.</p></div>
+          <div class="range"><label>tentacles <b id="v-tents">15</b></label>
+            <input id="n-tents" type="range" min="7" max="25" step="2" value="15"></div>
+          <div class="range"><label>speed <b id="v-speed">6.0</b></label>
+            <input id="speed" type="range" min="2" max="10" step="0.1" value="6"></div>
+          <div class="range"><label>horizon <b id="v-horizon">1.6</b></label>
+            <input id="horizon" type="range" min="0.4" max="2.2" step="0.1" value="1.6"></div>
+        </div>
+
+        <div class="card equation-card">
+          <div class="card-head"><h2>Cost of the selected arc</h2><span id="selected-chip" class="chip">arc 0</span></div>
+          <div id="equation" class="equation"></div>
+          <div id="cost-bars" class="bars"></div>
+          <p class="note">The selected arc is the minimum of the same expression over the fan.
+            Costs are normalised per prediction step.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section id="maths" class="maths">
+      <div class="section-head">
+        <p class="eyebrow">THE WHOLE IDEA IN ONE EXPRESSION</p>
+        <h2>What the car is minimising</h2>
+      </div>
+      <div class="formula-grid">
+        <article class="formula-card">
+          <h3>Tentacle cost</h3>
+          <div class="math">$$
+J=w_{track}\sum e^2+w_{head}\sum e_\psi^2
++w_{speed}\sum (v-v^*)^2
++w_{comfort}\left(\delta^2+\tfrac12(\delta-\delta_{prev})^2\right)
++w_{soft}\sum \mathrm{soft}^2
+$$</div>
+          <p>Each candidate arc is propagated through the kinematic bicycle model for the horizon.
+            The favourite is the lowest $J$.</p>
+        </article>
+        <article class="formula-card">
+          <h3>Soft corridor</h3>
+          <div class="math">$$
+\mathrm{soft}=\max\left(0,|e|-0.72\,w\right)
+$$</div>
+          <p>The soft constraint lets the car use 72 % of the corridor for free, then pays
+            quadratically. The hard constraint rejects an arc outside 98 %.</p>
+        </article>
+        <article class="formula-card">
+          <h3>Kinematic bicycle</h3>
+          <div class="math">$$
+\dot x=v\cos\psi,\quad \dot y=v\sin\psi,\quad
+\dot\psi=\frac{v}{L}\tan\delta
+$$</div>
+          <p>The predictor and the simulator use the same model, so a “good-looking” arc is also
+            physically reachable by the simulated car.</p>
+        </article>
+        <article class="formula-card">
+          <h3>Why sampling?</h3>
+          <div class="math">$$
+\delta_k=-\delta_{max}+\frac{2\delta_{max}k}{N-1}
+$$</div>
+          <p>No QP solver, no allocation, deterministic worst-case time. Fifteen arcs give
+            about 3.5° of steering resolution.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="section-head">
+        <p class="eyebrow">BUILT FROM THE BRISTOL FSAI STACK</p>
+        <h2>Same controller, explainable.</h2>
+      </div>
+      <p class="about-copy">This page visualises the same sampling-MPC cost used by
+        <code>planning_control/control/MPC.cpp</code>: tentacle generation, corridor soft/hard
+        constraints and the per-component cost history. The geometry is the real FSUK 2023
+        track, not a drawn demo. The goal is to make the controller inspectable before it
+        moves a real car.</p>
+      <div class="about-links">
+        <a href="https://github.com/Formula-Student-AI/bristol-fsai-autonomous-driving-system/tree/shalev" target="_blank" rel="noreferrer">Vehicle repo ↗</a>
+        <a href="https://github.com/altcar" target="_blank" rel="noreferrer">altcar ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>MPC Race Studio</span>
+    <span>Three.js · KaTeX · real FSUK geometry</span>
+  </footer>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
