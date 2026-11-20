@@ -7,7 +7,7 @@ on the same page.
 
 **Live:** https://altcar.github.io/mpc-race-studio/
 
-![Driving Lab](lab/screenshot.png)
+![Driving Lab](screenshot.png)
 
 ## One page, three layers
 
