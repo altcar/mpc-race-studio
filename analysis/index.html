@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MPC Race Studio — comparison lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><a href="../">← MPC Race Studio</a><span>Comparison Lab</span><a href="../lab/">Driving Lab ↗</a></header>
+<main>
+  <p class="eyebrow">THREE CONTROLLERS · THREE QUESTIONS</p>
+  <h1>What the numbers<br>actually say.</h1>
+  <p class="lede">F1 imitation, FlyWire-inspired control and the model-based
+    stack are not the same task. This page keeps the metrics separate and honest.</p>
+
+  <section class="grid">
+    <article><span class="num">01</span><h2>PID / MPC</h2><b>0.025 / 0.317 m</b><p>max cross-track error on the real FSUK sprint line; 98/98 gates, loop yes.</p><img src="validation_fsuk_sprint.png" alt="FSUK validation"></article>
+    <article><span class="num">02</span><h2>F1 imitation</h2><b>5.61 % throttle</b><p>behaviour cloning on held-out Silverstone laps. Steering 0.0096 rad; brake 5.65 %.</p><img src="f1_results.png" alt="F1 telemetry predictions"></article>
+    <article><span class="num">03</span><h2>FlyWire</h2><b>1.79 m max CTE</b><p>Kenyon/CX-inspired surrogate on the same FSUK line; RMS 0.86 m, lap yes.</p><img src="fly_results.png" alt="FlyWire trial"></article>
+  </section>
+
+  <section class="table">
+    <h2>Comparison</h2>
+    <table>
+      <tr><th>Link</th><th>Task</th><th>Metric</th><th>Result</th></tr>
+      <tr><td>PID / pure pursuit</td><td>FSUK track following</td><td>max CTE</td><td>0.025 m</td></tr>
+      <tr><td>MPC</td><td>FSUK track following</td><td>max CTE</td><td>0.317 m</td></tr>
+      <tr><td>F1 imitation</td><td>held-out driver commands</td><td>throttle MAE</td><td>5.61 %</td></tr>
+      <tr><td>F1 imitation</td><td>held-out driver commands</td><td>steering MAE</td><td>0.0096 rad</td></tr>
+      <tr><td>FlyWire surrogate</td><td>FSUK track following</td><td>max CTE</td><td>1.79 m</td></tr>
+    </table>
+  </section>
+
+  <section class="note">
+    <h2>Read this before comparing</h2>
+    <p>The F1 model learns throttle/brake from a different track and is not a
+      closed-loop planner. The FlyWire model is a subset-scale surrogate, not a
+      140k-neuron simulation. The PID/MPC numbers are closed-loop on the same
+      FSUK geometry. The table is a map of evidence, not a leaderboard.</p>
+  </section>
+</main>
+<footer><span>altcar / MPC Race Studio</span><span>real data · real geometry · isolated experiments</span></footer>
+</body></html>

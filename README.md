@@ -2,7 +2,8 @@
 
 Interactive, explainable tentacle-MPC visualiser for the Bristol FSAI race car.
 
-**Live:** https://altcar.github.io/mpc-race-studio/
+**Live:** https://altcar.github.io/mpc-race-studio/  
+**Driving Lab:** https://altcar.github.io/mpc-race-studio/lab/
 
 ![MPC Race Studio](screenshot.png)
 
@@ -11,6 +12,14 @@ car follows the line while a fan of steering arcs is generated from the same
 kinematic bicycle model used by the C++ MPC. Every arc is scored by the cost
 function; the cheapest arc is highlighted in magenta and the equation updates
 with the current weights.
+
+## Three sites, one repo
+
+1. `/` — the tentacle-MPC cost-function visualiser.
+2. `/lab/` — **Shalev Driving Lab**: manual driving versus PID-PP, Stanley, MPC,
+   F1 imitation and FlyWire, with the real core-sim2 actuator request.
+3. `/analysis/` — **Comparison Lab**: F1, FlyWire and PID/MPC results with the
+   caveats about their different tasks.
 
 ## What is interactive
 
