@@ -1,175 +1,146 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MPC Race Studio — interactive tentacle MPC</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <link rel="stylesheet" href="styles.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\\\(',right:'\\\\)',display:false}]})"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shalev Driving Lab — one world, six modes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}]})"></script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="aurora"></div>
-  <header class="topbar">
-    <a class="brand" href="#">
-      <span class="brand-mark">M</span>
-      <span><strong>MPC Race Studio</strong><small>interactive tentacle MPC</small></span>
-    </a>
-    <nav>
-      <a href="#visualiser">Visualiser</a>
-      <a href="#maths">The maths</a>
-      <a href="#about">About</a>
-      <a href="lab/">Driving Lab ↗</a>
-      <a href="analysis/">Analysis ↗</a>
-      <a class="ghost" href="https://github.com/altcar/mpc-race-studio" target="_blank" rel="noreferrer">GitHub ↗</a>
-    </nav>
-  </header>
+<header>
+  <div class="brand"><span>SL</span><div><strong>Shalev Driving Lab</strong><small>manual · PID · MPC · F1 · FlyWire · real actuator</small></div></div>
+  <nav><a href="#drive">Drive</a><a href="#maths">Maths</a><a href="#compare">Comparison</a>
+    <a href="https://github.com/Formula-Student-AI/bristol-fsai-autonomous-driving-system/tree/shalev" target="_blank" rel="noreferrer">Vehicle stack ↗</a></nav>
+</header>
 
-  <main>
-    <section class="hero">
-      <div>
-        <p class="eyebrow">REAL FSUK GEOMETRY · LIVE COST FUNCTION</p>
-        <h1>See the MPC<br><span>think.</span></h1>
-        <p class="lede">A sampling MPC fires a fan of steering arcs, scores every arc with the same cost
-          function the car uses, and commits to the cheapest one. Move the weights and watch the
-          choice change in real time.</p>
+<main>
+  <section id="drive" class="drive">
+    <div class="world">
+      <canvas id="three"></canvas>
+      <div class="world-top">
+        <span class="pill"><i class="dot cyan"></i>real FSUK geometry</span>
+        <span class="pill"><i class="dot magenta"></i><span id="mode-label">MPC</span></span>
+        <span class="pill" id="competition-pill">SPRINT</span>
       </div>
-      <div class="hero-stats">
-        <div><span id="stat-tents">15</span><small>tentacles</small></div>
-        <div><span id="stat-speed">6.0</span><small>m/s</small></div>
-        <div><span id="stat-horizon">1.6</span><small>s horizon</small></div>
+      <div class="world-bottom">
+        <button id="view">First person</button>
+        <button id="play">Pause</button>
+        <button id="reset">Restart</button>
+        <span id="hint">WASD · first-person steering wheel visible</span>
       </div>
-    </section>
+      <div class="cone-counter"><span>CONES HIT</span><b id="cone-hits">0</b><small id="round-label">round 1</small></div>
+      <div class="speed-hud"><b id="hud-speed">0</b><span>m/s</span><small id="hud-mode">MPC</small></div>
+    </div>
 
-    <section id="visualiser" class="studio">
-      <div class="scene-panel">
-        <div id="three"></div>
-        <div class="scene-hud">
-          <div class="pill"><i class="dot cyan"></i> race line</div>
-          <div class="pill"><i class="dot magenta"></i> selected arc</div>
-          <div class="pill"><i class="dot grey"></i> alternatives</div>
+    <aside class="side">
+      <section class="card">
+        <div class="card-head"><h2>Competition</h2><span class="live">profile</span></div>
+        <div class="chips" id="competitions">
+          <button data-comp="sprint" class="active">Sprint</button>
+          <button data-comp="trackdrive">Track drive</button>
+          <button data-comp="skidpad">Skidpad</button>
+          <button data-comp="acceleration">Acceleration</button>
         </div>
-        <div class="scene-actions">
-          <button id="play" class="primary">Pause</button>
-          <button id="reset">Recentre</button>
-          <label class="toggle"><input id="show-all" type="checkbox" checked> show all tentacles</label>
-        </div>
-      </div>
+        <p class="hint" id="comp-hint">Fastest single lap; balanced tracking and apex use.</p>
+      </section>
 
-      <aside class="controls">
-        <div class="card">
-          <div class="card-head"><h2>MPC weights</h2><span class="live">live</span></div>
-          <div class="range"><label>tracking <b id="v-track">6.0</b></label>
-            <input id="w-track" type="range" min="0" max="20" step="0.1" value="6">
-            <p>Penalises cross-track error². High values hug the line.</p></div>
-          <div class="range"><label>heading <b id="v-head">2.5</b></label>
-            <input id="w-head" type="range" min="0" max="10" step="0.1" value="2.5">
-            <p>Penalises heading error². High values point early into corners.</p></div>
-          <div class="range"><label>comfort <b id="v-comfort">0.35</b></label>
-            <input id="w-comfort" type="range" min="0" max="3" step="0.01" value="0.35">
-            <p>Penalises steering magnitude. High values smooth the wheel.</p></div>
-          <div class="range"><label>soft constraint <b id="v-soft">4.0</b></label>
-            <input id="w-soft" type="range" min="0" max="30" step="0.2" value="4">
-            <p>Quadratic penalty once the predicted car leaves 72 % of the corridor.</p></div>
-          <div class="range"><label>tentacles <b id="v-tents">15</b></label>
-            <input id="n-tents" type="range" min="7" max="25" step="2" value="15"></div>
-          <div class="range"><label>speed <b id="v-speed">6.0</b></label>
-            <input id="speed" type="range" min="2" max="10" step="0.1" value="6"></div>
-          <div class="range"><label>horizon <b id="v-horizon">1.6</b></label>
-            <input id="horizon" type="range" min="0.4" max="2.2" step="0.1" value="1.6"></div>
+      <section class="card">
+        <div class="card-head"><h2>Drive mode</h2><span class="live">live</span></div>
+        <div class="modes" id="modes">
+          <button data-mode="manual">Manual</button>
+          <button data-mode="pp" class="active">PID · PP</button>
+          <button data-mode="stanley">PID · Stanley</button>
+          <button data-mode="mpc">MPC</button>
+          <button data-mode="f1">F1 imitation</button>
+          <button data-mode="fly">FlyWire</button>
         </div>
+        <div class="slider"><label>target speed <b id="v-speed">6.0</b> m/s</label><input id="speed" type="range" min="2" max="16" step="0.1" value="6"></div>
+        <div class="slider"><label>MPC horizon <b id="v-horizon">0.6</b> s</label><input id="horizon" type="range" min="0.3" max="2" step="0.1" value="0.6"></div>
+        <div class="slider"><label>tentacles <b id="v-tents">15</b></label><input id="tents" type="range" min="7" max="25" step="2" value="15"></div>
+        <div class="slider"><label>w_track <b id="v-wt">6.0</b></label><input id="wt" type="range" min="0" max="20" step="0.1" value="6"></div>
+        <div class="slider"><label>w_head <b id="v-wh">2.5</b></label><input id="wh" type="range" min="0" max="10" step="0.1" value="2.5"></div>
+        <div class="slider"><label>w_soft <b id="v-ws">4.0</b></label><input id="ws" type="range" min="0" max="30" step="0.2" value="4"></div>
+        <p class="hint" id="mode-hint">PID pure pursuit; speed PID + physical actuator request.</p>
+      </section>
 
-        <div class="card equation-card">
-          <div class="card-head"><h2>Cost of the selected arc</h2><span id="selected-chip" class="chip">arc 0</span></div>
-          <div id="equation" class="equation"></div>
-          <div id="cost-bars" class="bars"></div>
-          <p class="note">The selected arc is the minimum of the same expression over the fan.
-            Costs are normalised per prediction step.</p>
+      <section class="card actuator">
+        <div class="card-head"><h2>Actual actuator request</h2><span id="act-mode" class="chip">SPEED</span></div>
+        <div class="act-grid">
+          <div><span>speed cmd</span><b id="a-speed">0.0</b><small>m/s</small></div>
+          <div><span>accel</span><b id="a-accel">0.0</b><small>m/s²</small></div>
+          <div><span>steer</span><b id="a-steer">0.0</b><small>deg</small></div>
+          <div><span>torque</span><b id="a-torque">0</b><small>Nm</small></div>
+          <div><span>rpm target</span><b id="a-rpm">—</b><small>rpm</small></div>
+          <div><span>brake</span><b id="a-brake">0</b><small>%</small></div>
         </div>
-      </aside>
-    </section>
+        <p class="hint">core-sim2: 300 kg · 0.253 m wheels · 195 Nm · 24° · 0.6 rad/s slew · speed mode via wheel rpm.</p>
+      </section>
 
-    <section id="maths" class="maths">
-      <div class="section-head">
-        <p class="eyebrow">THE WHOLE IDEA IN ONE EXPRESSION</p>
-        <h2>What the car is minimising</h2>
-      </div>
-      <div class="formula-grid">
-        <article class="formula-card">
-          <h3>Tentacle cost</h3>
-          <div class="math">$$
+      <section class="card">
+        <div class="card-head"><h2>Live traces</h2><span class="live">60 Hz</span></div>
+        <canvas id="graph"></canvas>
+        <div class="mini"><span>CTE</span><b id="s-cte">0.00</b><small>m</small></div>
+        <div class="mini"><span>heading error</span><b id="s-he">0.00</b><small>rad</small></div>
+        <div class="mini"><span>lap</span><b id="s-lap">0 / 0</b></div>
+      </section>
+    </aside>
+  </section>
+
+  <section id="maths" class="maths">
+    <p class="eyebrow">THE COST FUNCTION CHANGES WITH THE WEIGHTS</p>
+    <h2>What the car is minimising</h2>
+    <div class="formula-grid">
+      <article><h3>Tentacle cost</h3><div class="math">$$
 J=w_{track}\sum e^2+w_{head}\sum e_\psi^2
-+w_{speed}\sum (v-v^*)^2
++w_{speed}\sum(v-v^*)^2
 +w_{comfort}\left(\delta^2+\tfrac12(\delta-\delta_{prev})^2\right)
-+w_{soft}\sum \mathrm{soft}^2
-$$</div>
-          <p>Each candidate arc is propagated through the kinematic bicycle model for the horizon.
-            The favourite is the lowest $J$.</p>
-        </article>
-        <article class="formula-card">
-          <h3>Soft corridor</h3>
-          <div class="math">$$
-\mathrm{soft}=\max\left(0,|e|-0.72\,w\right)
-$$</div>
-          <p>The soft constraint lets the car use 72 % of the corridor for free, then pays
-            quadratically. The hard constraint rejects an arc outside 98 %.</p>
-        </article>
-        <article class="formula-card">
-          <h3>Kinematic bicycle</h3>
-          <div class="math">$$
++w_{soft}\sum\mathrm{soft}^2
+$$</div><p>Each candidate arc is propagated through the bicycle model. The lowest J wins.</p></article>
+      <article><h3>Soft corridor</h3><div class="math">$$
+\mathrm{soft}=\max(0,|e|-0.72w)
+$$</div><p>72 % of the corridor is free; beyond it the cost grows quadratically. The hard limit rejects an arc.</p></article>
+      <article><h3>Kinematic bicycle</h3><div class="math">$$
 \dot x=v\cos\psi,\quad \dot y=v\sin\psi,\quad
-\dot\psi=\frac{v}{L}\tan\delta
-$$</div>
-          <p>The predictor and the simulator use the same model, so a “good-looking” arc is also
-            physically reachable by the simulated car.</p>
-        </article>
-        <article class="formula-card">
-          <h3>Why sampling?</h3>
-          <div class="math">$$
-\delta_k=-\delta_{max}+\frac{2\delta_{max}k}{N-1}
-$$</div>
-          <p>No QP solver, no allocation, deterministic worst-case time. Fifteen arcs give
-            about 3.5° of steering resolution.</p>
-        </article>
-      </div>
-    </section>
+\dot\psi=\frac vL\tan\delta
+$$</div><p>Same model in the predictor and the car simulation.</p></article>
+      <article><h3>Actuator</h3><div class="math">$$
+rpm_{target}=\min\left(4000,\frac{60v_{cmd}}{2\pi r_w}\right),\quad
+\tau=\frac{m r_w|a+0.5|}{2}
+$$</div><p>Speed mode, torque and mechanical brake follow core-sim2.</p></article>
+    </div>
+    <div class="live-cost">
+      <span>Selected arc cost</span><b id="live-cost">0.000</b>
+      <span id="live-parts">tracking · heading · comfort · soft</span>
+      <div id="live-eq" class="live-eq"></div>
+    </div>
+  </section>
 
-    <section id="about" class="about">
-      <div class="section-head">
-        <p class="eyebrow">BUILT FROM THE BRISTOL FSAI STACK</p>
-        <h2>Same controller, explainable.</h2>
-      </div>
-      <p class="about-copy">This page visualises the same sampling-MPC cost used by
-        <code>planning_control/control/MPC.cpp</code>: tentacle generation, corridor soft/hard
-        constraints and the per-component cost history. The geometry is the real FSUK 2023
-        track, not a drawn demo. The goal is to make the controller inspectable before it
-        moves a real car.</p>
-      <div class="about-links">
-        <a href="https://github.com/Formula-Student-AI/bristol-fsai-autonomous-driving-system/tree/shalev" target="_blank" rel="noreferrer">Vehicle repo ↗</a>
-        <a href="lab/">Open the driving lab ↗</a>
-        <a href="https://github.com/altcar" target="_blank" rel="noreferrer">altcar ↗</a>
-      </div>
-    </section>
-  </main>
+  <section id="compare" class="compare">
+    <p class="eyebrow">THREE CONTROLLERS · THREE QUESTIONS</p>
+    <h2>Comparison, without pretending it is a leaderboard</h2>
+    <div class="compare-grid">
+      <article><span>01</span><h3>PID / MPC</h3><b>0.025 / 0.317 m</b><p>max CTE on real FSUK sprint; 98/98 gates, loop yes.</p></article>
+      <article><span>02</span><h3>F1 imitation</h3><b>5.61 % throttle</b><p>held-out Silverstone laps; steering 0.0096 rad, brake 5.65 %.</p></article>
+      <article><span>03</span><h3>FlyWire</h3><b>1.79 m max CTE</b><p>Kenyon/CX surrogate on FSUK; RMS 0.86 m, lap yes.</p></article>
+    </div>
+    <p class="fine">F1 is a different track and predicts commands, not a closed-loop planner. FlyWire is a subset-scale surrogate, not a 140k-neuron simulation. PID/MPC are closed-loop on the same geometry.</p>
+  </section>
+</main>
 
-  <footer>
-    <span>MPC Race Studio</span>
-    <span>Three.js · KaTeX · real FSUK geometry</span>
-  </footer>
+<footer><span>Shalev Driving Lab · altcar</span><span>real geometry · core-sim2 actuator · Three.js</span></footer>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
-  <script type="module" src="main.js"></script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module" src="race3d.js"></script>
 </body>
 </html>

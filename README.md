@@ -1,70 +1,56 @@
-# MPC Race Studio
+# Shalev Driving Lab
 
-Interactive, explainable tentacle-MPC visualiser for the Bristol FSAI race car.
+One interactive world for the Bristol FSAI car: **manual driving versus PID,
+MPC, F1 imitation and FlyWire**, with the real core-sim2 actuator request,
+first-person cockpit, real FSUK geometry and the maths/comparison explanation
+on the same page.
 
-**Live:** https://altcar.github.io/mpc-race-studio/  
-**Driving Lab:** https://altcar.github.io/mpc-race-studio/lab/
+**Live:** https://altcar.github.io/mpc-race-studio/
 
-![MPC Race Studio](screenshot.png)
+![Driving Lab](lab/screenshot.png)
 
-The scene uses the real **FSUK 2023** race-line geometry, not a drawn demo. A
-car follows the line while a fan of steering arcs is generated from the same
-kinematic bicycle model used by the C++ MPC. Every arc is scored by the cost
-function; the cheapest arc is highlighted in magenta and the equation updates
-with the current weights.
+## One page, three layers
 
-## Three sites, one repo
+1. **Drive** — Three.js world, chase/first-person camera, WASD manual, PID-PP,
+   Stanley, MPC, F1 and FlyWire. Real track, sky, cones, steering wheel that
+   turns in first person.
+2. **Actuator** — actual speed mode RPM, torque Nm, mechanical brake %,
+   steering degrees and slew. Motion follows the actuator-derived acceleration.
+3. **Explain** — the live tentacle cost function, soft/hard corridor, bicycle
+   model and the F1/FlyWire/MPC comparison with caveats.
 
-1. `/` — the tentacle-MPC cost-function visualiser.
-2. `/lab/` — **Shalev Driving Lab**: manual driving versus PID-PP, Stanley, MPC,
-   F1 imitation and FlyWire, with the real core-sim2 actuator request.
-3. `/analysis/` — **Comparison Lab**: F1, FlyWire and PID/MPC results with the
-   caveats about their different tasks.
+## First person
 
-## What is interactive
+The **First person** button moves the camera into the cockpit. W/S throttle and
+brake, A/D steer; the steering wheel rotates with the actual steering angle.
+Chase and first-person use the same physics and actuator values.
 
-- tracking, heading, comfort and soft-constraint weights
-- number of tentacles
-- speed and prediction horizon
-- show/hide alternative arcs
-- pause / recentre the 3D camera
-- the selected arc's cost expression and component bars update live
+## Competitions
 
-## The cost
+- **Sprint** — fastest lap, balanced tracking.
+- **Track drive** — 11 laps, consistency, higher comfort/soft weights.
+- **Skidpad** — figure of eight, lateral/steering stability.
+- **Acceleration** — peak speed, straight line, full brake into the orange box.
 
-$$
-J=w_{track}\sum e^2+w_{head}\sum e_\psi^2
-+w_{speed}\sum(v-v^*)^2
-+w_{comfort}\left(\delta^2+\tfrac12(\delta-\delta_{prev})^2\right)
-+w_{soft}\sum\mathrm{soft}^2
-$$
+## Cone contact
 
-$$
-\mathrm{soft}=\max(0,|e|-0.72w)
-$$
-
-$$
-\dot x=v\cos\psi,\qquad \dot y=v\sin\psi,\qquad
-\dot\psi=\frac{v}{L}\tan\delta
-$$
-
-The page is a static Three.js + KaTeX site; no build step.
+Cones are collision-only objects. A cone inside the hit radius turns red and
+increments the round's **CONES HIT** counter. The counter and cones reset at the
+start of every round. This is a planning/validation counter, not rigid-body
+physics.
 
 ## Run locally
 
 ```bash
 python3 -m http.server 8099
-# open http://localhost:8099
+# http://localhost:8099
 ```
+
+Static assets only: no Worker runtime. GitHub Pages rebuilds on every push.
 
 ## Source
 
-- vehicle stack: `Formula-Student-AI/bristol-fsai-autonomous-driving-system`
-- MPC reference: `planning_control/control/MPC.cpp`
-- geometry: real `sim/src/map_lib/maps/competitions/FSUK/2023/trackdrive.csv`
-
-## Design
-
-Dark glass panels, cyan/magenta accents, Space Grotesk + Inter. The 3D view is
-an OrbitControls scene; the equations use KaTeX. The page is responsive down
-to a phone-width single column.
+- `planning_control/` — C++ planner, PID/MPC, core-sim2 actuator mapping
+- `planning_control/shalevtest/` — GUI, Foxglove, validation, browser lab
+- F1 and FlyWire models exported into `f1_model.json` / `fly_model.json`
+- real FSUK geometry in `track_full.json`, `acceleration.json`, `skidpad.json`
