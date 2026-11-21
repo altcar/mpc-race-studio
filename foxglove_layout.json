@@ -1,14 +1,27 @@
 {
   "configById": {
     "3D!overview": {
-      "title": "Track overview — full FSUK scene",
+      "title": "Track overview \u2014 full FSUK scene",
       "cameraState": {
         "distance": 200,
         "perspective": true,
         "phi": 50,
-        "target": [0, 0, 0],
-        "targetOffset": [23, -38, 0],
-        "targetOrientation": [0, 0, 0, 1],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          23,
+          -38,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
         "thetaOffset": 40,
         "fovy": 45,
         "near": 0.5,
@@ -19,14 +32,30 @@
       "scene": {},
       "transforms": {},
       "topics": {
-        "/track/scenery": { "visible": true },
-        "/control/car": { "visible": true },
-        "/race/trail": { "visible": true },
-        "/control/tentacles": { "visible": true },
-        "/control/constraints": { "visible": false },
-        "/planning/least_action": { "visible": false },
-        "/planning/raceline": { "visible": false },
-        "/race_line/scene": { "visible": false }
+        "/track/scenery": {
+          "visible": true
+        },
+        "/control/car": {
+          "visible": true
+        },
+        "/race/trail": {
+          "visible": true
+        },
+        "/control/tentacles": {
+          "visible": true
+        },
+        "/control/constraints": {
+          "visible": false
+        },
+        "/planning/least_action": {
+          "visible": false
+        },
+        "/planning/raceline": {
+          "visible": false
+        },
+        "/race_line/scene": {
+          "visible": false
+        }
       },
       "layers": {
         "grid": {
@@ -38,8 +67,16 @@
           "divisions": 16,
           "lineWidth": 1,
           "color": "#248eff",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0]
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
         }
       },
       "publish": {
@@ -55,33 +92,61 @@
       "imageMode": {}
     },
     "3D!chase": {
-      "title": "Car chase — tentacles, trail, constraints",
+      "title": "Car chase \u2014 tentacles, trail, constraints",
       "cameraState": {
-        "distance": 28,
+        "distance": 20,
         "perspective": true,
-        "phi": 65,
-        "target": [0, 0, 0],
-        "targetOffset": [0, 0, 1],
-        "targetOrientation": [0, 0, 0, 1],
+        "phi": 18,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
         "thetaOffset": 0,
-        "fovy": 45,
+        "fovy": 60,
         "near": 0.5,
         "far": 5000
       },
-      "followMode": "follow-pose",
-      "followTf": "car",
-      "fixedFrame": "track",
+      "followMode": "follow-none",
+      "fixedFrame": "car",
       "scene": {},
       "transforms": {},
       "topics": {
-        "/track/scenery": { "visible": true },
-        "/control/car": { "visible": true },
-        "/race/trail": { "visible": true },
-        "/control/tentacles": { "visible": true },
-        "/control/constraints": { "visible": false },
-        "/planning/least_action": { "visible": false },
-        "/planning/raceline": { "visible": false },
-        "/race_line/scene": { "visible": false }
+        "/track/scenery": {
+          "visible": true
+        },
+        "/control/car": {
+          "visible": true
+        },
+        "/race/trail": {
+          "visible": true
+        },
+        "/control/tentacles": {
+          "visible": true
+        },
+        "/control/constraints": {
+          "visible": false
+        },
+        "/planning/least_action": {
+          "visible": false
+        },
+        "/planning/raceline": {
+          "visible": false
+        },
+        "/race_line/scene": {
+          "visible": false
+        }
       },
       "layers": {
         "grid": {
@@ -93,8 +158,16 @@
           "divisions": 8,
           "lineWidth": 1,
           "color": "#1c4a7a",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0]
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
         }
       },
       "publish": {
@@ -108,11 +181,6 @@
       },
       "synchronize": false,
       "imageMode": {}
-    },
-    "RawMessages!state": {
-      "title": "Control state",
-      "topic": "/control/state",
-      "defaultExpanded": true
     }
   },
   "globalVariables": {},
@@ -123,12 +191,7 @@
   "layout": {
     "direction": "row",
     "first": "3D!overview",
-    "second": {
-      "direction": "column",
-      "first": "3D!chase",
-      "second": "RawMessages!state",
-      "splitPercentage": 72
-    },
-    "splitPercentage": 60
+    "second": "3D!chase",
+    "splitPercentage": 58
   }
 }
