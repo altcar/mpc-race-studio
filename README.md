@@ -2,7 +2,7 @@
 
 One interactive world for the Bristol FSAI car: **manual driving versus PID,
 MPC, F1 imitation and FlyWire**, with the real core-sim2 actuator request,
-first-person cockpit, real FSUK geometry and the maths/comparison explanation
+third-person driving, real FSUK geometry and the maths/comparison explanation
 on the same page.
 
 **Live:** https://altcar.github.io/mpc-race-studio/
@@ -11,19 +11,20 @@ on the same page.
 
 ## One page, three layers
 
-1. **Drive** — Three.js world, chase/first-person camera, WASD manual, PID-PP,
-   Stanley, MPC, F1 and FlyWire. Real track, sky, cones, steering wheel that
-   turns in first person.
+1. **Drive** — Three.js world at real metre scale, third-person chase camera,
+   WASD manual, PID-PP, Stanley, MPC, F1 and FlyWire. Real track, kerbs,
+   cones, start gantry, hills, trees, coastline and sky.
 2. **Actuator** — actual speed mode RPM, torque Nm, mechanical brake %,
    steering degrees and slew. Motion follows the actuator-derived acceleration.
 3. **Explain** — the live tentacle cost function, soft/hard corridor, bicycle
    model and the F1/FlyWire/MPC comparison with caveats.
 
-## First person
+## Third-person driving
 
-The **First person** button moves the camera into the cockpit. W/S throttle and
-brake, A/D steer; the steering wheel rotates with the actual steering angle.
-Chase and first-person use the same physics and actuator values.
+The car is 1.9 m long, the road is the real FSUK width and the chase camera sits
+5.6 m behind it, so the scene reads at driving scale. W/S throttle and brake,
+A/D steer; the front wheels and the car body follow the real steering angle and
+speed. The camera widens its field of view with speed.
 
 ## Competitions
 
@@ -35,9 +36,32 @@ Chase and first-person use the same physics and actuator values.
 ## Cone contact
 
 Cones are collision-only objects. A cone inside the hit radius turns red and
-increments the round's **CONES HIT** counter. The counter and cones reset at the
-start of every round. This is a planning/validation counter, not rigid-body
-physics.
+increments the round's **CONES HIT** counter. At the end of a round only the
+counter and the cone states reset — **the car keeps its position, speed and
+heading**, so a lap is continuous. This is a planning/validation counter, not
+rigid-body physics.
+
+## Foxglove full-scene layout
+
+![Foxglove full scene](foxglove_full_scene.png)
+
+The old saved layout had every 3D-panel topic **unchecked**, which is why the
+panel only ever showed its grid. The fixed layout binds the scene explicitly:
+
+| Panel | Frame | What it shows |
+|---|---|---|
+| Track overview | `track` | cones, gates, race line, soft/hard corridor, LeastAction vectors, car trail |
+| Car chase | `car` | the whole world moves around the car: all MPC tentacles (grey), the selected tentacle (magenta), trail and constraints |
+
+Open it with the recorded file:
+
+https://app.foxglove.dev/97502a0a/p/prj_0egrq4fVsBIYJsHs/view?layoutId=lay_0ekIWYJEWi5J1OtK&ds=remote-file&ds.url=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2Faltcar%2Fmpc-race-studio%40f889be4%2Fdemo.mcap
+
+To import the layout into another account, use `foxglove_layout.json`
+(Foxglove → layout menu → **Import from file…**).
+
+`demo.mcap` is recorded by `planning_control/shalevtest/record_mcap.py` with a
+real 37 s timeline and a `world → track → car` TF tree.
 
 ## Run locally
 

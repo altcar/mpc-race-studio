@@ -15,7 +15,7 @@
 <body>
 <header>
   <div class="brand"><span>SL</span><div><strong>Shalev Driving Lab</strong><small>manual · PID · MPC · F1 · FlyWire · real actuator</small></div></div>
-  <nav><a href="#drive">Drive</a><a href="#maths">Maths</a><a href="#compare">Comparison</a>
+  <nav><a href="#drive">Drive</a><a href="#maths">Maths</a><a href="#compare">Comparison</a><a href="#foxglove">Foxglove ↗</a>
     <a href="https://github.com/Formula-Student-AI/bristol-fsai-autonomous-driving-system/tree/shalev" target="_blank" rel="noreferrer">Vehicle stack ↗</a></nav>
 </header>
 
@@ -29,10 +29,9 @@
         <span class="pill" id="competition-pill">SPRINT</span>
       </div>
       <div class="world-bottom">
-        <button id="view">First person</button>
         <button id="play">Pause</button>
         <button id="reset">Restart</button>
-        <span id="hint">WASD · first-person steering wheel visible</span>
+        <span id="hint">WASD · third-person chase</span>
       </div>
       <div class="cone-counter"><span>CONES HIT</span><b id="cone-hits">0</b><small id="round-label">round 1</small></div>
       <div class="speed-hud"><b id="hud-speed">0</b><span>m/s</span><small id="hud-mode">MPC</small></div>
@@ -90,6 +89,26 @@
         <div class="mini"><span>lap</span><b id="s-lap">0 / 0</b></div>
       </section>
     </aside>
+  </section>
+
+
+  <section id="foxglove" class="foxglove">
+    <p class="eyebrow">FULL-SCENE FOXGLOVE LAYOUT</p>
+    <h2>The same scene, in Foxglove</h2>
+    <div class="fox-grid">
+      <article class="fox-card">
+        <img src="foxglove_full_scene.png" alt="Foxglove 3D panels showing the track overview and the car chase with MPC tentacles">
+      </article>
+      <article class="fox-copy">
+        <p>Two 3D panels open from the recorded <code>demo.mcap</code>:</p>
+        <ul>
+          <li><b>Track overview</b> &mdash; FSUK geometry, blue/yellow cones, gates, race line, soft corridor, LeastAction vectors and the car history trail.</li>
+          <li><b>Car chase</b> &mdash; the fixed frame is <code>car</code>, so the whole world moves around the car. Every MPC tentacle is grey, the selected one is magenta, and the hard/soft constraints stay visible.</li>
+        </ul>
+        <p class="hint">The panel topics were saved as <em>hidden</em> in the old layout. They are now bound explicitly; the layout file is in the repo as <code>foxglove_layout.json</code>.</p>
+        <p><a class="fox-btn" href="https://app.foxglove.dev/97502a0a/p/prj_0egrq4fVsBIYJsHs/view?layoutId=lay_0ekIWYJEWi5J1OtK&amp;ds=remote-file&amp;ds.url=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2Faltcar%2Fmpc-race-studio%40f889be4%2Fdemo.mcap" target="_blank" rel="noreferrer">Open in Foxglove ↗</a></p>
+      </article>
+    </div>
   </section>
 
   <section id="maths" class="maths">
