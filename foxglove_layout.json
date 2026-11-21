@@ -1,0 +1,134 @@
+{
+  "configById": {
+    "3D!overview": {
+      "title": "Track overview — full FSUK scene",
+      "cameraState": {
+        "distance": 200,
+        "perspective": true,
+        "phi": 50,
+        "target": [0, 0, 0],
+        "targetOffset": [23, -38, 0],
+        "targetOrientation": [0, 0, 0, 1],
+        "thetaOffset": 40,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-none",
+      "fixedFrame": "track",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "/track/scenery": { "visible": true },
+        "/control/car": { "visible": true },
+        "/race/trail": { "visible": true },
+        "/control/tentacles": { "visible": true },
+        "/control/constraints": { "visible": false },
+        "/planning/least_action": { "visible": false },
+        "/planning/raceline": { "visible": false },
+        "/race_line/scene": { "visible": false }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "drawBehind": false,
+          "instanceId": "4b6d2f5a-0b3c-4a9e-9f0d-trackgrid001",
+          "layerId": "foxglove.Grid",
+          "size": 80,
+          "divisions": 16,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0]
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {}
+    },
+    "3D!chase": {
+      "title": "Car chase — tentacles, trail, constraints",
+      "cameraState": {
+        "distance": 28,
+        "perspective": true,
+        "phi": 65,
+        "target": [0, 0, 0],
+        "targetOffset": [0, 0, 1],
+        "targetOrientation": [0, 0, 0, 1],
+        "thetaOffset": 0,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "car",
+      "fixedFrame": "track",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "/track/scenery": { "visible": true },
+        "/control/car": { "visible": true },
+        "/race/trail": { "visible": true },
+        "/control/tentacles": { "visible": true },
+        "/control/constraints": { "visible": false },
+        "/planning/least_action": { "visible": false },
+        "/planning/raceline": { "visible": false },
+        "/race_line/scene": { "visible": false }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "drawBehind": true,
+          "instanceId": "9c1e7d20-8a4b-4f2e-b3c1-chasegrid002",
+          "layerId": "foxglove.Grid",
+          "size": 40,
+          "divisions": 8,
+          "lineWidth": 1,
+          "color": "#1c4a7a",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0]
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {}
+    },
+    "RawMessages!state": {
+      "title": "Control state",
+      "topic": "/control/state",
+      "defaultExpanded": true
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "row",
+    "first": "3D!overview",
+    "second": {
+      "direction": "column",
+      "first": "3D!chase",
+      "second": "RawMessages!state",
+      "splitPercentage": 72
+    },
+    "splitPercentage": 60
+  }
+}
