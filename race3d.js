@@ -472,8 +472,9 @@ function step(dt) {
   let steerCmd=0, accel=0, speedCmd=0;
 
   if(state.switching){
-    // Mode change: brake to a full stop before the new controller takes over.
-    speedCmd=0; accel=-10;
+    // Mode change: brake to a full stop, but keep following the track so the car
+    // does not slide straight off the road while it stops.
+    speedCmd=0; accel=-10; steerCmd=ppSteer(idx);
     if(v<=0.12){ state.car.v=0; state.switching=false; }
   } else if(state.mode==='manual'){
     const thr=state.manual.thr?1:0, brk=state.manual.brk?1:0;
