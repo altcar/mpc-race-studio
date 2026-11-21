@@ -41,10 +41,10 @@
       <section class="card">
         <div class="card-head"><h2>Competition</h2><span class="live">profile</span></div>
         <div class="chips" id="competitions">
-          <button data-comp="sprint" class="active">Sprint</button>
-          <button data-comp="trackdrive">Track drive</button>
-          <button data-comp="skidpad">Skidpad</button>
-          <button data-comp="acceleration">Acceleration</button>
+          <button type="button" data-comp="sprint" aria-pressed="false" class="active">Sprint</button>
+          <button type="button" data-comp="trackdrive" aria-pressed="false">Track drive</button>
+          <button type="button" data-comp="skidpad" aria-pressed="false">Skidpad</button>
+          <button type="button" data-comp="acceleration" aria-pressed="false">Acceleration</button>
         </div>
         <p class="hint" id="comp-hint">Fastest single lap; balanced tracking and apex use.</p>
       </section>
@@ -52,12 +52,12 @@
       <section class="card">
         <div class="card-head"><h2>Drive mode</h2><span class="live">live</span></div>
         <div class="modes" id="modes">
-          <button data-mode="manual">Manual</button>
-          <button data-mode="pp" class="active">PID · PP</button>
-          <button data-mode="stanley">PID · Stanley</button>
-          <button data-mode="mpc">MPC</button>
-          <button data-mode="f1">F1 imitation</button>
-          <button data-mode="fly">FlyWire</button>
+          <button type="button" data-mode="manual" aria-pressed="false">Manual</button>
+          <button type="button" data-mode="pp" class="active" aria-pressed="true">PID · PP</button>
+          <button type="button" data-mode="stanley" aria-pressed="false">PID · Stanley</button>
+          <button type="button" data-mode="mpc" aria-pressed="false">MPC</button>
+          <button type="button" data-mode="f1" aria-pressed="false">F1 imitation</button>
+          <button type="button" data-mode="fly" aria-pressed="false">FlyWire</button>
         </div>
         <div class="slider"><label>target speed <b id="v-speed">6.0</b> m/s</label><input id="speed" type="range" min="2" max="16" step="0.1" value="6"></div>
         <div class="slider"><label>MPC horizon <b id="v-horizon">0.6</b> s</label><input id="horizon" type="range" min="0.3" max="2" step="0.1" value="0.6"></div>

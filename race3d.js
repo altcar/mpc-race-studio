@@ -5,16 +5,16 @@ const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 const wrap = a => { while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; };
 
 const PROFILES = {
-  sprint: { file:'track_full.json', closed:true, laps:1, target:6, weights:{track:6,head:2.5,soft:4}, hint:'Fastest single lap; balanced tracking and apex use.' },
-  trackdrive: { file:'track_full.json', closed:true, laps:11, target:6, weights:{track:6,head:2.5,soft:5}, hint:'One learning lap + 10 scored laps; consistency and smooth corridor use.' },
-  skidpad: { file:'skidpad.json', closed:true, laps:2, target:5, weights:{track:8,head:4,soft:6}, hint:'Figure-of-eight: minimise lateral error and steering oscillation.' },
-  acceleration: { file:'acceleration.json', closed:false, laps:1, target:14, weights:{track:2,head:1,soft:8}, hint:'Straight-line peak speed, full brake into the orange stop box.' },
+  sprint: { file:"track_full.json", closed:true, laps:1, target:8.5, alat:6.2, weights:{track:6,head:2.5,soft:4}, hint:'Fastest single lap; balanced tracking and apex use.' },
+  trackdrive: { file:"track_full.json", closed:true, laps:11, target:7.0, alat:5.8, weights:{track:6,head:2.5,soft:5}, hint:'One learning lap + 10 scored laps; consistency and smooth corridor use.' },
+  skidpad: { file:'skidpad.json', closed:true, laps:2, target:5.5, alat:8.6, weights:{track:8,head:4,soft:6}, hint:'Figure-of-eight: minimise lateral error and steering oscillation.' },
+  acceleration: { file:'acceleration.json', closed:false, laps:1, target:14, alat:12, weights:{track:2,head:1,soft:8}, hint:'Straight-line peak speed, full brake into the orange stop box.' },
 };
 
 const state = {
   mode:'pp', competition:'sprint', view:'chase', playing:true,
   track:null, path:[], length:0, closed:true, laps:1,
-  car:{x:0,y:0,h:0,v:0}, steer:0, targetSpeed:6,
+  car:{x:0,y:0,h:0,v:0}, steer:0, targetSpeed:8.5, vTarget:0, alat:7.2, switching:false,
   weights:{track:6,head:2.5,soft:4}, horizon:0.6, nTents:15,
   trail:[], history:[], tentacles:[], selected:-1, parts:null,
   t:0, lap:0, round:1, coneHits:0, finished:false,
@@ -92,10 +92,11 @@ function initScene() {
   buildCar();
   addClouds();
   resize(); animate();
-  window.__lab={state,get camera(){return camera;},get scene(){return scene;},get carGroup(){return carGroup;}};
+  window.__lab={state,step,setMode,loadTrack,get camera(){return camera;},get scene(){return scene;},get carGroup(){return carGroup;}};
 }
 
 function buildCar() {
+  if(carGroup){ scene.remove(carGroup); carGroup=null; }
   carGroup = new THREE.Group(); carGroup.scale.setScalar(S); scene.add(carGroup);
   const paint = new THREE.MeshStandardMaterial({color:0xff4d00, metalness:.55, roughness:.32});
   const dark = new THREE.MeshStandardMaterial({color:0x14161c, roughness:.7, metalness:.2});
@@ -158,10 +159,10 @@ function addClouds() {
 
 function buildWorld(track) {
   worldGroup.clear(); coneMeshes=[];
-  state.track=track; state.path=track.raceline;
+  state.track=track; state.rawPath=track.raceline; state.path=track.raceline;
   const pts=track.raceline;
   CX=pts.reduce((s,p)=>s+p[0],0)/pts.length; CY=pts.reduce((s,p)=>s+p[1],0)/pts.length;
-  state.length=pts.reduce((s,p,i)=>s+Math.hypot(pts[(i+1)%pts.length][0]-p[0],pts[(i+1)%pts.length][1]-p[1]),0);
+  const cps=state.path; state.length=cps.reduce((s,p,i)=>s+Math.hypot(cps[(i+1)%cps.length][0]-p[0],cps[(i+1)%cps.length][1]-p[1]),0);
   pathCurve=new THREE.CatmullRomCurve3(pts.map(p=>w2v(p)), state.closed, 'catmullrom', .08);
 
   const tube=new THREE.Mesh(new THREE.TubeGeometry(pathCurve, 900, .035, 8, state.closed),
@@ -209,22 +210,22 @@ function buildWorld(track) {
   }
   buildRoad(track);
   buildEnvironment(track);
-  buildGantry(track);
+  if(state.competition!=='skidpad') buildGantry(track);
   resetRound(true);
 }
 
 function buildRoad(track) {
-  const pts=track.raceline, n=pts.length, half=2.2, pos=[], uv=[], idx=[];
-  let dist=0;
+  const bl=track.boundaries?.blue||[], ye=track.boundaries?.yellow||[];
+  const n=Math.min(bl.length,ye.length);
+  if(n<3) return;
+
+  const mid=i=>[(bl[i][0]+ye[i][0])/2,(bl[i][1]+ye[i][1])/2];
+  const pos=[],uv=[],idx=[]; let dist=0;
   for(let i=0;i<n;i++){
-    const a=pts[(i-1+n)%n], b=pts[(i+1)%n];
-    let tx=b[0]-a[0],ty=b[1]-a[1]; const l=Math.hypot(tx,ty)||1; tx/=l;ty/=l;
-    const nx=-ty,ny=tx;
-    const p=pts[i];
-    if(i) dist+=Math.hypot(p[0]-pts[i-1][0],p[1]-pts[i-1][1]);
-    for(const sgn of [-1,1]){
-      const q=w2v([p[0]+nx*half*sgn,p[1]+ny*half*sgn],.008);
-      pos.push(q.x,q.y,q.z); uv.push(sgn<0?0:1,dist/6);
+    if(i){const a=mid(i-1),b=mid(i);dist+=Math.hypot(b[0]-a[0],b[1]-a[1]);}
+    const pL=bl[i], pR=ye[i];
+    for(const p of [pL,pR]){
+      const q=w2v(p,.008); pos.push(q.x,q.y,q.z); uv.push(p===pL?0:1,dist/6);
     }
   }
   for(let i=0;i<n;i++){
@@ -240,26 +241,28 @@ function buildRoad(track) {
     roughness:.82, metalness:.05, side:THREE.DoubleSide});
   const road=new THREE.Mesh(geo,mat); road.position.y=.006; road.receiveShadow=true; worldGroup.add(road);
 
-  // white edge lines
-  for(const sgn of [-1,1]){
-    const edge=pts.map((p,i)=>{const a=pts[(i-1+n)%n],b=pts[(i+1)%n];let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;return w2v([p[0]-ty*half*.98*sgn,p[1]+tx*half*.98*sgn],.018);});
-    worldGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(edge),new THREE.LineBasicMaterial({color:0xe8edf5,transparent:true,opacity:.7})));
+  // white edge lines sit on the same blue/yellow boundaries as the cones
+  for(const edgePts of [bl,ye]){
+    worldGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(edgePts.map(p=>w2v(p,.018))),
+      new THREE.LineBasicMaterial({color:0xe8edf5,transparent:true,opacity:.75})));
   }
 
-  // red/white kerbs just outside the white lines
+  // red/white kerbs just outside the boundaries
   const kc=document.createElement('canvas'); kc.width=64; kc.height=8;
   const kg=kc.getContext('2d');
   for(let i=0;i<8;i++){kg.fillStyle=i%2?'#e9ecef':'#cf2b2b';kg.fillRect(i*8,0,8,8);}
   const kerbTex=new THREE.CanvasTexture(kc); kerbTex.wrapS=THREE.RepeatWrapping; kerbTex.colorSpace=THREE.SRGBColorSpace;
-  for(const sgn of [-1,1]){
+  for(const side of ['blue','yellow']){
+    const P=side==='blue'?bl:ye, O=side==='blue'?ye:bl;
     const pos=[],uv=[],idx=[]; let dist=0;
     for(let i=0;i<n;i++){
-      const a=pts[(i-1+n)%n], b=pts[(i+1)%n], p=pts[i];
-      let tx=b[0]-a[0],ty=b[1]-a[1]; const l=Math.hypot(tx,ty)||1; tx/=l;ty/=l;
-      const nx=-ty,ny=tx;
-      if(i) dist+=Math.hypot(p[0]-pts[i-1][0],p[1]-pts[i-1][1]);
-      for(const [off,v] of [[half,0],[half+.55,1]]){
-        const q=w2v([p[0]+nx*off*sgn,p[1]+ny*off*sgn],.012);
+      const p=P[i], o=O[i];
+      const a=mid(i);
+      if(i){const b=mid(i-1);dist+=Math.hypot(a[0]-b[0],a[1]-b[1]);}
+      let ox=p[0]-o[0], oy=p[1]-o[1];
+      const ol=Math.hypot(ox,oy)||1; ox/=ol; oy/=ol;
+      for(const [off,v] of [[0,0],[.55,1]]){
+        const q=w2v([p[0]+ox*off,p[1]+oy*off],.012);
         pos.push(q.x,q.y,q.z); uv.push(dist/3.2,v);
       }
     }
@@ -306,7 +309,7 @@ function buildEnvironment(track) {
   for(let i=0;i<n;i+=step){
     const a=pts[(i-1+n)%n],b=pts[(i+1)%n],p=pts[i];
     let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
-    const nx=-ty,ny=tx, side=(ti%2?1:-1), off=6+rnd(i+30)*13;
+    const nx=-ty,ny=tx, side=(ti%2?1:-1), off=Math.max(8,span*0.12)+rnd(i+30)*Math.max(6,span*0.10);
     if(rnd(i+40)<0.35){ti++;continue;}
     const X=p[0]+nx*off*side, Y=p[1]+ny*off*side;
     const hgt=4.5+rnd(i+50)*5, wid=hgt*(0.22+rnd(i+60)*0.1);
@@ -355,11 +358,19 @@ function buildGantry(track) {
   const g=new THREE.Group();
   g.position.copy(w2v(a,0)); g.rotation.y=Math.PI/2-yaw;
   const steel=new THREE.MeshStandardMaterial({color:0x2b3442, metalness:.7, roughness:.35});
-  for(const x of [-4.6,4.6]){
+  let halfW=3.4;
+  const bl=track.boundaries?.blue, ye=track.boundaries?.yellow;
+  if(bl&&ye&&bl.length===ye.length){
+    let bi=0,bd=1e9;
+    for(let i=0;i<bl.length;i++){const mx=(bl[i][0]+ye[i][0])/2,my=(bl[i][1]+ye[i][1])/2;const d=(mx-a[0])**2+(my-a[1])**2;if(d<bd){bd=d;bi=i;}}
+    halfW=Math.max(3.2,Math.min(5.2,Math.hypot(bl[bi][0]-ye[bi][0],bl[bi][1]-ye[bi][1])/2+0.9));
+  }
+  const postX=halfW, barW=halfW*2+0.4;
+  for(const x of [-postX,postX]){
     const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,5.2,10),steel);
     post.position.set(x,2.6,0); post.castShadow=true; g.add(post);
   }
-  const bar=new THREE.Mesh(new THREE.BoxGeometry(9.6,.7,.35),steel);
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(barW,.7,.35),steel);
   bar.position.set(0,5.0,0); bar.castShadow=true; g.add(bar);
   const c=document.createElement('canvas'); c.width=512; c.height=96;
   const ctx=c.getContext('2d');
@@ -368,7 +379,7 @@ function buildGantry(track) {
   ctx.fillStyle='#f4f7fb'; ctx.font='bold 40px Inter, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('START  ·  FINISH',256,50);
   const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
-  const banner=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.15,.10),
+  const banner=new THREE.Mesh(new THREE.BoxGeometry(barW-.3,1.15,.10),
     new THREE.MeshStandardMaterial({map:tex,roughness:.55,emissive:0x0a0a0a}));
   banner.position.set(0,4.25,0); g.add(banner);
   worldGroup.add(g);
@@ -436,6 +447,15 @@ function flySteer(idx) {
 }
 
 // ------------------------------------------------------------------ actuator/physics
+function curvatureAhead(idx, dist) {
+  const n=state.path.length;
+  const seg=Math.max(0.05, state.length/Math.max(1,n));
+  const steps=Math.max(1,Math.min(n-1,Math.round(dist/seg)));
+  let k=0;
+  for(let j=0;j<=steps;j++) k=Math.max(k, curvAt((idx+j)%n));
+  return k;
+}
+
 function actuator(speedCmd,accel,steer) {
   const deg=clamp(steer*180/Math.PI,-24,24); let torque=0,rpm=-1,brake=0,mode='NEUTRAL';
   if(speedCmd>0){rpm=Math.min(4000,speedCmd*60/(2*Math.PI*.253));torque=50;mode='SPEED';}
@@ -448,29 +468,48 @@ function actuator(speedCmd,accel,steer) {
 
 function step(dt) {
   const idx=nearest(state.car.x,state.car.y,state.idx); state.idx=idx;
-  const k=curvAt(idx), vlim=Math.min(state.targetSpeed,Math.sqrt(1.4*9.81/Math.max(k,1e-4)));
-  let target=vlim, steerCmd=0, accel=0, speedCmd=target;
-  if(state.mode==='manual') {
-    speedCmd=0; accel=state.manual.thr*4.5-state.manual.brk*10;
+  const v=state.car.v;
+  let steerCmd=0, accel=0, speedCmd=0;
+
+  if(state.switching){
+    // Mode change: brake to a full stop before the new controller takes over.
+    speedCmd=0; accel=-10;
+    if(v<=0.12){ state.car.v=0; state.switching=false; }
+  } else if(state.mode==='manual'){
+    const thr=state.manual.thr?1:0, brk=state.manual.brk?1:0;
+    speedCmd=0;
+    accel = brk ? -10 : (thr ? 4.5 : (v>0.25 ? -1.8 : 0));
     steerCmd=(state.manual.left?1:0)*.35-(state.manual.right?1:0)*.35;
-    state.last.thr=state.manual.thr*100; state.last.brk=state.manual.brk*100;
+    state.last.thr=thr*100; state.last.brk=brk*100;
   } else {
-    accel=clamp(8.8*(target-state.car.v),-10,4.5);
+    // Corner-limited speed target, using the worst curvature in a 16 m lookahead.
+    const k=curvatureAhead(idx,16);
+    const vCorner=Math.sqrt(state.alat/Math.max(k,1e-4));
+    let target=Math.min(state.targetSpeed, vCorner);
+    if(state.competition==='acceleration' && state.t>0.96) target=0;   // brake into the stop box
+    state.vTarget += clamp(target-state.vTarget, -8*dt, 4*dt);
+    speedCmd=state.vTarget;
+    accel=clamp(3.0*(state.vTarget-v), -9, 4.5);
     if(state.mode==='pp') steerCmd=ppSteer(idx);
     else if(state.mode==='stanley') steerCmd=stanleySteer(idx);
     else if(state.mode==='mpc') steerCmd=mpcSteer();
     else if(state.mode==='f1'){const f=f1Policy(idx,accel);accel=f.a;steerCmd=f.steer;}
     else if(state.mode==='fly') steerCmd=flySteer(idx);
-    if(state.mode!=='f1'){state.last.thr=Math.max(0,accel)/4.5*100;state.last.brk=Math.max(0,-accel)/10*100;}
+    if(state.mode!=='f1'){state.last.thr=Math.max(0,accel)/4.5*100;state.last.brk=Math.max(0,-accel)/9*100;}
   }
+
   const maxStep=.6*dt; state.steer+=clamp(steerCmd-state.steer,-maxStep,maxStep); state.steer=clamp(state.steer,-24*Math.PI/180,24*Math.PI/180);
   const act=actuator(speedCmd,accel,state.steer); state.lastAct=act;
+
   let aEff=accel;
-  if(act.mode==='SPEED') aEff=clamp(8.8*(act.rpm*2*Math.PI*.253/60-state.car.v),-10,4.5);
-  else if(act.mode==='TORQUE') aEff=2*act.torque/(300*.253)-.5;
+  if(act.mode==='SPEED') aEff=clamp(8.8*(speedCmd-state.car.v),-10,4.5);
+  else if(act.mode==='TORQUE') aEff=clamp(2*act.torque/(300*.253)-.5,-10,4.5);
   else if(act.mode==='BRAKE') aEff=-act.brake/100*10;
   else if(act.mode==='NEUTRAL') aEff=0;
-  state.car.v=clamp(state.car.v+aEff*dt,0,20);
+  if(state.car.v>0.05) aEff-=0.12+0.006*state.car.v*state.car.v;   // rolling + aero drag
+
+  state.car.v=clamp(state.car.v+aEff*dt,0,25);
+  if(state.car.v<0.02) state.car.v=0;
   state.car.x+=state.car.v*Math.cos(state.car.h)*dt; state.car.y+=state.car.v*Math.sin(state.car.h)*dt;
   state.car.h=wrap(state.car.h+state.car.v/1.53*Math.tan(state.steer)*dt);
   state.t+=state.car.v*dt/Math.max(1,state.length);
@@ -485,7 +524,7 @@ function step(dt) {
 function checkCones() {
   for(const c of coneMeshes) {
     if(c.hit) continue;
-    if(Math.hypot(c.x-state.car.x,c.y-state.car.y)<.55) {
+    if(Math.hypot(c.x-state.car.x,c.y-state.car.y)<.38) {
       c.hit=true; state.coneHits++; c.mesh.material.color.setHex(0xff2222); c.mesh.material.emissive.setHex(0x441111);
     }
   }
@@ -526,7 +565,8 @@ function updateCamera() {
   const pos=carGroup.position;
   bodyMesh.visible=true; noseMesh.visible=true; wheelMeshes.forEach(w=>w.visible=true); cockpit.visible=false;
   const eye=pos.clone().addScaledVector(fwd,-5.6).add(new THREE.Vector3(0,2.35,0));
-  if(state.idx>0||state.t>0) camera.position.lerp(eye,.14); else camera.position.copy(eye);
+  if(state.snapCam){camera.position.copy(eye);state.snapCam=false;}
+  else camera.position.lerp(eye,.14);
   camera.lookAt(pos.clone().addScaledVector(fwd,7.5).add(new THREE.Vector3(0,0.95,0)));
   const fov=55+Math.min(18,state.car.v*1.5);
   if(Math.abs(camera.fov-fov)>.05){camera.fov+=(fov-camera.fov)*.06;camera.updateProjectionMatrix();}
@@ -561,7 +601,7 @@ function updateHud() {
     $('a-speed').textContent=a.speedCmd.toFixed(1);$('a-accel').textContent=a.accel.toFixed(1);$('a-steer').textContent=a.steerDeg.toFixed(1);
     $('a-torque').textContent=a.torque.toFixed(0);$('a-rpm').textContent=a.rpm>0?a.rpm.toFixed(0):'—';$('a-brake').textContent=a.brake.toFixed(0);$('act-mode').textContent=a.mode;
   }
-  $('hud-speed').textContent=state.car.v.toFixed(1);$('hud-mode').textContent=state.mode.toUpperCase();
+  $('hud-speed').textContent=state.car.v.toFixed(1);$('hud-mode').textContent=state.switching?'BRAKING':state.mode.toUpperCase();
   $('s-cte').textContent=state.cte.toFixed(2);$('s-he').textContent=state.he.toFixed(2);$('s-lap').textContent=state.lap+' / '+(state.idx||0);
   $('cone-hits').textContent=state.coneHits;$('round-label').textContent='round '+state.round;
 }
@@ -580,6 +620,7 @@ function resetCarPosition(){
   const p=state.path[0],b=state.path[1];
   state.car={x:p[0],y:p[1],h:Math.atan2(b[1]-p[1],b[0]-p[0]),v:0};
   state.steer=0;state.trail=[];state.history=[];state.t=0;state.lastAct=null;state.idx=0;
+  state.vTarget=0;state.switching=false;state.tentacles=[];state.selected=-1;state.snapCam=true;
 }
 function resetRound(full=false){
   state.lap=0;state.round=1;state.coneHits=0;state.t=0;
@@ -587,18 +628,49 @@ function resetRound(full=false){
   resetCarPosition();
   if(full){$('hud-speed').textContent='0.0';}
 }
+let loadSeq=0;
 async function loadTrack(comp){
-  const prof=PROFILES[comp];state.competition=comp;state.closed=prof.closed;state.laps=prof.laps;
-  state.targetSpeed=prof.target;state.weights={...prof.weights};
-  document.querySelectorAll('#competitions button').forEach(b=>b.classList.toggle('active',b.dataset.comp===comp));
+  const prof=PROFILES[comp]; if(!prof) return;
+  const seq=++loadSeq;
+  state.competition=comp;state.closed=prof.closed;state.laps=prof.laps;
+  state.targetSpeed=prof.target;state.alat=prof.alat;state.weights={...prof.weights};
+  state.vTarget=0;state.switching=false;
+  document.querySelectorAll('#competitions button').forEach(b=>{
+    const on=b.dataset.comp===comp;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
   $('comp-hint').textContent=prof.hint;$('competition-pill').textContent=comp.toUpperCase();
   const track=await fetch(prof.file).then(r=>r.json());
+  if(seq!==loadSeq) return;                 // a newer competition click won
   buildWorld(track);resize();resetRound(true);
+  const sp=$('speed'); if(sp){sp.value=Math.min(+sp.max,prof.target);$('v-speed').textContent=prof.target.toFixed(1);}
+  const w=prof.weights;
+  $('wt').value=w.track;$('v-wt').textContent=w.track.toFixed(1);
+  $('wh').value=w.head;$('v-wh').textContent=w.head.toFixed(1);
+  $('ws').value=w.soft;$('v-ws').textContent=w.soft.toFixed(1);
 }
 function setMode(m){
-  state.mode=m;document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  if(!m) return;
+  const changed=m!==state.mode;
+  state.mode=m;
+  if(changed){
+    // Single-select handshake: stop the car, then let the new controller pull away.
+    state.switching=true;state.vTarget=0;
+    state.tentacles=[];state.selected=-1;state.parts=null;
+    state.manual.thr=0;state.manual.brk=0;state.manual.left=0;state.manual.right=0;
+    state.last.thr=0;state.last.brk=0;
+  }
+  document.querySelectorAll('#modes button').forEach(b=>{
+    const on=b.dataset.mode===m;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
   $('mode-label').textContent={manual:'MANUAL',pp:'PID · PP',stanley:'PID · STANLEY',mpc:'MPC',f1:'F1 IMITATION',fly:'FLYWIRE'}[m];
-  $('mode-hint').textContent={manual:'WASD drive. Torque/brake actuator path; steering wheel turns in first person.',pp:'PID pure pursuit; speed PID + physical actuator.',stanley:'PID Stanley heading/cross-track law.',mpc:'Sampling MPC with live tentacle fan and soft/hard corridor.',f1:'OpenF1 model for throttle/brake + PP steering stabiliser.',fly:'FlyWire Kenyon/CX readout + PP stabiliser.'}[m];
+  $('mode-hint').textContent={
+    manual:'WASD drive. Release the throttle and the car engine-brakes to a stop before you steer away.',
+    pp:'PID pure pursuit; speed follows the corner-limited target through the real actuator.',
+    stanley:'PID Stanley heading/cross-track law with corner speed limiting.',
+    mpc:'Sampling MPC with live tentacle fan and soft/hard corridor.',
+    f1:'OpenF1 model for throttle/brake + PP steering stabiliser.',
+    fly:'FlyWire Kenyon/CX readout + PP stabiliser.'}[m];
+  updateHud();
 }
 function bindSlider(id,key,fmt){
   const el=$(id),out=$('v-'+id);const sync=()=>{const v=+el.value;out.textContent=fmt(v);
@@ -612,7 +684,9 @@ function resize(){
   camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
   const g=graphEl.getBoundingClientRect();graphEl.width=g.width*d;graphEl.height=g.height*d;
 }
+let booted=false;
 async function load(){
+  if(booted) return; booted=true;
   initScene();
   const [f1,fly]=await Promise.all([fetch('f1_model.json').then(r=>r.json()),fetch('fly_model.json').then(r=>r.json())]);
   state.f1=f1;state.fly=fly;

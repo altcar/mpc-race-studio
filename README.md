@@ -26,6 +26,17 @@ The car is 1.9 m long, the road is the real FSUK width and the chase camera sits
 A/D steer; the front wheels and the car body follow the real steering angle and
 speed. The camera widens its field of view with speed.
 
+**Speed is corner-limited.** Every autonomous mode takes the worst curvature in
+a 16 m lookahead and caps the target at `sqrt(a_lat / kappa)`, so the car slows
+into corners (about 6.3 m/s) and pulls back to the slider target (8.5 m/s for
+sprint) on the straights. Releasing the throttle in manual engages engine
+braking and rolls the car to a stop.
+
+**Mode changes brake to zero first.** Selecting Manual, PID, Stanley, MPC, F1 or
+FlyWire while moving switches the car into a short full-brake phase (the HUD
+shows `BRAKING`), stops it, then lets the new controller pull away. Only one
+drive mode can be active at a time.
+
 ## Competitions
 
 - **Sprint** — fastest lap, balanced tracking.
@@ -34,6 +45,9 @@ speed. The camera widens its field of view with speed.
 - **Acceleration** — peak speed, straight line, full brake into the orange box.
 
 ## Cone contact
+
+The road surface is built from the blue/yellow boundary polylines, not from the
+racing line, so every cone, kerb and white line sits on the same geometry.
 
 Cones are collision-only objects. A cone inside the hit radius turns red and
 increments the round's **CONES HIT** counter. At the end of a round only the
